@@ -1,0 +1,248 @@
+@import "tailwindcss";
+
+/* ──────────────────────────────────────────────────────────────────────────
+   MBORO HORIZONS — Design System « Nuit d'Or »
+   Palette : noir encre · or champagne · ivoire · bordeaux (rappel affiche)
+   Typo    : Cormorant Garamond (display) · Jost (texte)
+   ────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Encre — fonds & surfaces */
+  --color-ink-950: #050403;
+  --color-ink-900: #0a0806;
+  --color-ink-800: #110e0a;
+  --color-ink-700: #181410;
+  --color-ink-600: #221d16;
+  --color-ink-500: #342d22;
+  --color-ink-400: #4d4434;
+
+  /* Or — accents & signatures */
+  --color-gold-50: #fcf8ea;
+  --color-gold-100: #f7edc8;
+  --color-gold-200: #f0dc97;
+  --color-gold-300: #e8c96c;
+  --color-gold-400: #dcb245;
+  --color-gold-500: #c9962b;
+  --color-gold-600: #a67a21;
+  --color-gold-700: #7d5a1b;
+  --color-gold-800: #553d16;
+
+  /* Ivoire — texte */
+  --color-ivory-50: #fbf7ee;
+  --color-ivory-100: #f3ecdb;
+  --color-ivory-200: #e3d9c0;
+  --color-ivory-300: #c9bda0;
+  --color-ivory-400: #a2977f;
+  --color-ivory-500: #7c735f;
+
+  /* Bordeaux — rappel de l'affiche rouge */
+  --color-bordeaux-300: #c0485a;
+  --color-bordeaux-500: #8e1b2f;
+  --color-bordeaux-700: #5c0f1e;
+  --color-bordeaux-900: #2b0710;
+
+  /* États */
+  --color-success: #6cc496;
+  --color-danger: #e57b86;
+  --color-warning: #e8b45a;
+
+  --shadow-gold: 0 0 0 1px rgb(201 150 43 / 0.28),
+    0 18px 50px -20px rgb(201 150 43 / 0.45);
+  --shadow-card: 0 30px 80px -40px rgb(0 0 0 / 0.9);
+
+  --animate-fade-up: fade-up 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-fade-in: fade-in 1.2s ease both;
+  --animate-shimmer: shimmer 9s linear infinite;
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-pulse-gold: pulse-gold 2.4s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(22px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 0% 50%;
+    }
+    to {
+      background-position: 200% 50%;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes pulse-gold {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgb(220 178 69 / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 10px rgb(220 178 69 / 0);
+    }
+  }
+}
+
+@theme inline {
+  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-sans: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--color-ink-950);
+    color: var(--color-ivory-100);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--color-gold-500);
+    color: var(--color-ink-950);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold-300);
+    outline-offset: 3px;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+}
+
+/* ─── Utilitaires de marque ─────────────────────────────────────────────── */
+
+@utility text-gold-gradient {
+  background-image: linear-gradient(
+    180deg,
+    #fff4c7 0%,
+    #e8c96c 30%,
+    #c9962b 58%,
+    #f0dc97 80%,
+    #a67a21 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+@utility text-gold-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    #b8862a 0%,
+    #f0dc97 22%,
+    #fff6d2 38%,
+    #e8c96c 52%,
+    #a67a21 76%,
+    #b8862a 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: var(--animate-shimmer);
+}
+
+@utility bg-gold-gradient {
+  background-image: linear-gradient(
+    135deg,
+    #f3e2a6 0%,
+    #dcb245 38%,
+    #c9962b 62%,
+    #ebd183 100%
+  );
+}
+
+@utility bg-spotlight {
+  background-image: radial-gradient(
+    ellipse at 50% 0%,
+    rgb(201 150 43 / 0.14) 0%,
+    transparent 60%
+  );
+}
+
+@utility surface {
+  background-image: linear-gradient(
+    180deg,
+    rgb(24 20 16 / 0.92),
+    rgb(10 8 6 / 0.92)
+  );
+  border: 1px solid rgb(201 150 43 / 0.2);
+  box-shadow: var(--shadow-card);
+}
+
+@utility hairline {
+  border-color: rgb(201 150 43 / 0.22);
+}
+
+/* Particules d'or (CSS pur) */
+.gold-dust {
+  background-image: radial-gradient(
+      1.5px 1.5px at 20% 30%,
+      rgb(240 220 151 / 0.7),
+      transparent 60%
+    ),
+    radial-gradient(1px 1px at 70% 20%, rgb(240 220 151 / 0.6), transparent 60%),
+    radial-gradient(2px 2px at 40% 70%, rgb(232 201 108 / 0.5), transparent 60%),
+    radial-gradient(1px 1px at 85% 60%, rgb(240 220 151 / 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 10% 80%, rgb(232 201 108 / 0.5), transparent 60%),
+    radial-gradient(1px 1px at 55% 45%, rgb(255 244 199 / 0.6), transparent 60%);
+  background-size: 480px 480px;
+  animation: float 14s ease-in-out infinite;
+}
+
+/* Billet imprimable */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-ticket {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
