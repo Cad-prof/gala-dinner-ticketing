@@ -32,6 +32,18 @@ Next.js 16 (App Router) · Tailwind CSS v4 · **Supabase** (commandes, billets, 
 
 > Bictorys refuse les URLs de redirection non-HTTPS hors `localhost` : en local, utilisez un tunnel HTTPS (ngrok…).
 
+## Développement local
+
+Prérequis : Node.js 20.9 ou supérieur et npm.
+
+1. Installez les dépendances : `npm ci`.
+2. Créez votre fichier de configuration local : `cp .env.example .env.local` (PowerShell : `Copy-Item .env.example .env.local`).
+3. Dans `.env.local`, renseignez `NEXT_PUBLIC_SUPABASE_URL` et `SUPABASE_SECRET_KEY` avec les identifiants de votre projet Supabase. Exécutez `supabase/migrations/0001_init.sql` dans son *SQL Editor* si ce n'est pas déjà fait.
+4. Réglez `NEXT_PUBLIC_BASE_URL` sur `http://localhost:3000`. Ajoutez les clés Bictorys pour tester le paiement ; utilisez des clés sandbox et configurez un tunnel HTTPS pour recevoir les webhooks en local.
+5. Lancez le serveur : `npm run dev`, puis ouvrez [http://localhost:3000](http://localhost:3000). La billetterie est sur `/billetterie` et l'espace organisateur sur `/admin`.
+
+Les variables Bictorys sont nécessaires au checkout, et `ADMIN_PASSWORD` à l'accès à `/admin`. Gardez `.env.local` privé et ne commitez jamais vos clés.
+
 ## Personnaliser
 
 - Date, lieu, contact, tarifs et avantages : `src/lib/event.ts`.
