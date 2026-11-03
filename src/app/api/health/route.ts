@@ -14,11 +14,18 @@ export async function GET() {
       .limit(1);
 
     if (error) {
+      console.error("[health] Supabase probe failed", {
+        code: error.code,
+      });
       return Response.json({ ok: false }, { status: 503 });
     }
 
     return Response.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error(
+      "[health] Supabase probe failed",
+      err instanceof Error ? err.name : "Unknown error",
+    );
     return Response.json({ ok: false }, { status: 503 });
   }
 }

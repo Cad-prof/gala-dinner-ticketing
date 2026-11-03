@@ -34,10 +34,18 @@ export async function loginAction(formData: FormData) {
   if (!isAdminConfigured() || !passwordMatches(password)) {
     // Ralentit les tentatives par force brute.
     await new Promise((resolve) => setTimeout(resolve, 800));
-    redirect(withCode("/admin", code, "error=1"));
+    redirect(withCode("/admin", code, "error=credentials"));
   }
 
-  await createAdminSession();
+  try {
+    await createAdminSession();
+  } catch (err) {
+    console.error(
+      "[admin/login] session:",
+      err instanceof Error ? err.message : "Unknown session error",
+    );
+    redirect(withCode("/admin", code, "error=session"));
+  }
   redirect(withCode("/admin", code));
 }
 
@@ -53,29 +61,45 @@ export async function checkInAction(formData: FormData) {
   const code = cleanCode(formData.get("code"));
   if (!code) redirect("/admin");
 
-  const db = getSupabaseAdmin();
-  const { data: ticket } = await db
-    .from("tickets")
-    .select("*")
-    .eq("code", code)
-    .maybeSingle<TicketRow>();
-  if (!ticket) redirect(withCode("/admin", code));
+  let result: "ok" | "already" | "error" | "notFound" | "invalid" | null = null;
 
-  const order = await getOrder(ticket.order_reference);
-  if (!order || order.status !== "succeeded") redirect(withCode("/admin", code));
+  try {
+    const db = getSupabaseAdmin();
+    const { data: ticket, error: ticketError } = await db
+      .from("tickets")
+      .select("*")
+      .eq("code", code)
+      .maybeSingle<TicketRow>();
+    if (ticketError) throw ticketError;
+    if (!ticket) {
+      result = "notFound";
+    } else {
+      const order = await getOrder(ticket.order_reference);
+      if (!order || order.status !== "succeeded") {
+        result = "invalid";
+      } else {
+        // Mise à jour conditionnelle : deux scans simultanés ne valident qu'une fois.
+        const { data: updated, error } = await db
+          .from("tickets")
+          .update({ checked_in_at: new Date().toISOString() })
+          .eq("id", ticket.id)
+          .is("checked_in_at", null)
+          .select("id");
 
-  // Mise à jour conditionnelle : deux scans simultanés ne valident qu'une fois.
-  const { data: updated, error } = await db
-    .from("tickets")
-    .update({ checked_in_at: new Date().toISOString() })
-    .eq("id", ticket.id)
-    .is("checked_in_at", null)
-    .select("id");
-
-  if (error) {
-    console.error("[admin/check-in]", error.message);
-    redirect(withCode("/admin", code, "result=error"));
+        if (error) throw error;
+        result = updated && updated.length > 0 ? "ok" : "already";
+      }
+    }
+  } catch (err) {
+    console.error(
+      "[admin/check-in]",
+      err instanceof Error ? err.message : "Unknown check-in error",
+    );
+    result = "error";
   }
 
-  redirect(withCode("/admin", code, updated && updated.length > 0 ? "result=ok" : "result=already"));
+  if (result === "notFound" || result === "invalid") {
+    redirect(withCode("/admin", code));
+  }
+  redirect(withCode("/admin", code, `result=${result ?? "error"}`));
 }

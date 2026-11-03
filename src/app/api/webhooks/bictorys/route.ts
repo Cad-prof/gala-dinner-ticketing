@@ -16,7 +16,16 @@ export const dynamic = "force-dynamic";
  * Répond 200 dès que l'événement est traité (Bictorys retente sur non-2xx).
  */
 export async function POST(request: NextRequest) {
-  const rawBody = await request.text();
+  let rawBody: string;
+  try {
+    rawBody = await request.text();
+  } catch (err) {
+    console.error(
+      "[bictorys/webhook] body read:",
+      err instanceof Error ? err.message : "Unknown error",
+    );
+    return new NextResponse(null, { status: 500 });
+  }
 
   try {
     if (!verifyWebhookSignature(request.headers, rawBody)) {
@@ -28,7 +37,11 @@ export async function POST(request: NextRequest) {
       console.error("[bictorys/webhook]", err.message);
       return new NextResponse(null, { status: 503 });
     }
-    throw err;
+    console.error(
+      "[bictorys/webhook] signature verification:",
+      err instanceof Error ? err.message : "Unknown error",
+    );
+    return new NextResponse(null, { status: 500 });
   }
 
   let payload: BictorysWebhookPayload;
@@ -41,9 +54,12 @@ export async function POST(request: NextRequest) {
 
   try {
     // Journal brut (audit) — n'empêche jamais le traitement.
-    await logPaymentEvent(payload.paymentReference, payload.status, payload).catch(
-      () => undefined,
-    );
+    await logPaymentEvent(payload.paymentReference, payload.status, payload).catch((err) => {
+      console.error(
+        "[bictorys/webhook] event logging:",
+        err instanceof Error ? err.message : "Unknown error",
+      );
+    });
 
     const next = mapProviderStatus(payload.status);
     if (!next || !payload.paymentReference) {

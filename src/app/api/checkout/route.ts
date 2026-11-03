@@ -74,7 +74,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("[checkout]", err instanceof Error ? err.message : err);
-    if (orderReference) await markOrderFailed(orderReference).catch(() => undefined);
+    if (orderReference) {
+      await markOrderFailed(orderReference).catch((cleanupError) => {
+        console.error(
+          "[checkout] failed to mark order as failed:",
+          cleanupError instanceof Error ? cleanupError.message : "Unknown error",
+        );
+      });
+    }
     return NextResponse.json(
       {
         error:

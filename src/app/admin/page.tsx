@@ -96,7 +96,9 @@ export default async function AdminPage({
                 />
                 {error ? (
                   <p className="mt-2 text-[13px] text-danger" role="alert">
-                    Mot de passe incorrect.
+                    {error === "session"
+                      ? "Impossible d'ouvrir la session. Réessayez."
+                      : "Mot de passe incorrect."}
                   </p>
                 ) : null}
               </div>
@@ -134,11 +136,15 @@ export default async function AdminPage({
       .not("checked_in_at", "is", null),
   ]);
 
-  if (ordersRes.error) {
+  if (ordersRes.error || checkedInRes.error) {
+    console.error(
+      "[admin/dashboard]",
+      ordersRes.error?.message ?? checkedInRes.error?.message,
+    );
     return (
       <Notice title="Erreur de base de données">
-        {ordersRes.error.message}. Avez-vous exécuté{" "}
-        <code className="text-gold-200">supabase/migrations/0001_init.sql</code> ?
+        Impossible de charger le tableau de bord. Vérifiez la connexion Supabase et que{" "}
+        <code className="text-gold-200">supabase/migrations/0001_init.sql</code> a bien été exécutée.
       </Notice>
     );
   }
