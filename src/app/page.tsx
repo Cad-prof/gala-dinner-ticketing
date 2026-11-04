@@ -27,7 +27,7 @@ const steps = [
   {
     icon: CreditCard,
     title: "Payez en toute sécurité",
-    text: "Wave, Orange Money, Free Money ou carte bancaire, via la passerelle sécurisée Bictorys.",
+    text: "Payez votre réservation en toute sécurité avec Wave.",
   },
   {
     icon: QrCode,

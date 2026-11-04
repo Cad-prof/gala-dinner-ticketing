@@ -1,11 +1,15 @@
 import "server-only";
-import { randomBytes } from "crypto";
+import { createHmac, randomBytes } from "crypto";
 import {
   MAX_PER_TYPE,
   MAX_TICKETS_PER_ORDER,
   getTicketType,
   type TicketTypeId,
 } from "@/lib/event";
+import {
+  findCheckoutSessionsByReference,
+  retrieveCheckoutSession,
+} from "@/lib/wave";
 import { verifyTransaction } from "@/lib/bictorys";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type {
@@ -112,9 +116,27 @@ export function parseCustomer(raw: unknown): CustomerInput {
   return { name, email, phone };
 }
 
+export async function consumeCheckoutAttempt(customer: CustomerInput): Promise<boolean> {
+  const secret = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error("Supabase secret key is missing for checkout rate limiting.");
+
+  const fingerprint = (kind: string, value: string) =>
+    createHmac("sha256", secret).update(`${kind}:${value}`).digest("hex");
+  const { data, error } = await getSupabaseAdmin().rpc("consume_checkout_attempt", {
+    p_fingerprints: [
+      fingerprint("email", customer.email),
+      fingerprint("phone", customer.phone),
+    ].sort(),
+    p_limit: 5,
+    p_window_seconds: 900,
+  });
+  if (error) throw new Error(`Supabase checkout rate limit: ${error.message}`);
+  return data === true;
+}
+
 // ─── Statuts ──────────────────────────────────────────────────────────────
 
-/** Statut Bictorys → statut interne. `authorized` & co : rien à faire. */
+/** Compatibility mapping for Bictorys checkouts created before the cutover. */
 export function mapProviderStatus(status: string | undefined): OrderStatus | null {
   switch (status) {
     case "succeeded":
@@ -176,7 +198,7 @@ export async function createPendingOrder(
     customer_name: customer.name,
     customer_email: customer.email,
     customer_phone: customer.phone,
-    provider: "bictorys",
+    provider: "wave",
   });
   if (error) throw new Error(`Supabase insert orders: ${error.message}`);
 
@@ -186,7 +208,7 @@ export async function createPendingOrder(
 export async function attachCharge(orderReference: string, chargeId: string) {
   const { error } = await getSupabaseAdmin()
     .from("orders")
-    .update({ provider: "bictorys", provider_charge_id: chargeId })
+    .update({ provider: "wave", provider_charge_id: chargeId })
     .eq("order_reference", orderReference);
   if (error) throw new Error(`Supabase update orders: ${error.message}`);
 }
@@ -224,13 +246,16 @@ export async function logPaymentEvent(
   orderReference: string | undefined,
   status: string | undefined,
   payload: unknown,
+  eventId?: string,
+  provider = "wave",
 ) {
-  const { error } = await getSupabaseAdmin().from("payment_events").insert({
+  const { error } = await getSupabaseAdmin().from("payment_events").upsert({
     order_reference: orderReference ?? null,
-    provider: "bictorys",
+    provider,
+    provider_event_id: eventId ?? null,
     event_status: status ?? null,
     payload,
-  });
+  }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true });
   if (error) console.error("[orders] payment_events insert:", error.message);
 }
 
@@ -324,22 +349,71 @@ export async function applyPaymentResult(
 }
 
 /**
- * Filet de sécurité si le webhook tarde : interroge Bictorys (clé privée,
- * serveur→serveur) et valide la commande uniquement sur un statut `succeeded`.
+ * Filet de sécurité si le webhook tarde : interroge Wave de serveur à serveur.
  */
 export async function reconcileOrder(order: OrderRow): Promise<OrderRow> {
   if (order.status !== "pending") return order;
-  const id = order.provider_transaction_id ?? order.provider_charge_id;
-  if (!id) return order;
   if (Date.now() - new Date(order.created_at).getTime() < 10_000) return order;
 
   try {
-    const tx = await verifyTransaction(id);
-    if (tx?.status !== "succeeded") return order;
+    const now = new Date();
+    const { data: claim, error: claimError } = await getSupabaseAdmin()
+      .from("orders")
+      .update({ provider_checked_at: now.toISOString() })
+      .eq("order_reference", order.order_reference)
+      .eq("status", "pending")
+      .or(`provider_checked_at.is.null,provider_checked_at.lt.${new Date(now.getTime() - 10_000).toISOString()}`)
+      .select("order_reference")
+      .maybeSingle();
+    if (claimError) throw new Error(`Supabase claim provider check: ${claimError.message}`);
+    if (!claim) return order;
+
+    if (order.provider === "bictorys") {
+      const transactionId = order.provider_transaction_id ?? order.provider_charge_id;
+      if (!transactionId) return order;
+      const transaction = await verifyTransaction(transactionId);
+      if (transaction?.status !== "succeeded") return order;
+      const result = await applyPaymentResult(order.order_reference, "succeeded", {
+        amount: transaction.amount,
+        currency: transaction.currency,
+        transactionId: transaction.id,
+      });
+      return result === "applied" ? (await getOrder(order.order_reference)) ?? order : order;
+    }
+    if (order.provider && order.provider !== "wave") return order;
+
+    let session;
+    if (order.provider_charge_id) {
+      session = await retrieveCheckoutSession(order.provider_charge_id);
+    } else {
+      const sessions = await findCheckoutSessionsByReference(
+        order.order_reference,
+        order.amount_total,
+      );
+      if (sessions.length !== 1) return order;
+      session = sessions[0];
+      await attachCharge(order.order_reference, session.id);
+    }
+
+    if (session.client_reference !== order.order_reference) return order;
+    if (session.amount !== String(order.amount_total) || session.currency !== order.currency) {
+      return order;
+    }
+    if (session.checkout_status === "expired") {
+      await applyPaymentResult(order.order_reference, "cancelled", {
+        amount: Number(session.amount),
+        currency: session.currency,
+      });
+      return (await getOrder(order.order_reference)) ?? order;
+    }
+    if (session.checkout_status !== "complete" || session.payment_status !== "succeeded") {
+      return order;
+    }
+
     const result = await applyPaymentResult(order.order_reference, "succeeded", {
-      amount: tx.amount,
-      currency: tx.currency,
-      transactionId: tx.id,
+      amount: Number(session.amount),
+      currency: session.currency,
+      transactionId: session.transaction_id ?? undefined,
     });
     if (result === "applied") {
       return (await getOrder(order.order_reference)) ?? order;

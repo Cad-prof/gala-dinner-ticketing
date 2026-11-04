@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Container, Eyebrow } from "@/components/ui/section";
-import { isBictorysConfigured } from "@/lib/bictorys";
+import { isWaveConfigured } from "@/lib/wave";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { getTicketType, type TicketTypeId } from "@/lib/event";
 import { CheckoutForm } from "./checkout-form";
@@ -20,7 +20,7 @@ export default async function BilletteriePage({
 }) {
   const { offre } = await searchParams;
   const initial: TicketTypeId = offre && getTicketType(offre) ? (offre as TicketTypeId) : "prevente";
-  const paymentsReady = isSupabaseConfigured() && isBictorysConfigured();
+  const paymentsReady = isSupabaseConfigured() && isWaveConfigured();
 
   return (
     <div className="bg-spotlight relative">

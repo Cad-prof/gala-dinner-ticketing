@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 
 /**
  * Tant que la commande est `pending`, interroge l'API toutes les 4 s (le
- * webhook Bictorys peut mettre quelques secondes à arriver) puis rafraîchit
+ * webhook Wave peut mettre quelques secondes à arriver) puis rafraîchit
  * la page dès que le statut change. S'arrête après 3 minutes.
  */
 export function OrderPoller({ orderRef }: { orderRef: string }) {

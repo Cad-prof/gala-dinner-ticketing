@@ -28,6 +28,7 @@ export interface OrderRow {
   provider: string | null;
   provider_charge_id: string | null;
   provider_transaction_id: string | null;
+  provider_checked_at: string | null;
   paid_at: string | null;
   created_at: string;
   updated_at: string;
@@ -54,7 +55,25 @@ export interface CustomerInput {
   phone: string;
 }
 
-/** Réponse Bictorys « create_charge » (checkout hébergé, HTTP 202). */
+export interface WaveCheckoutSession {
+  id: string;
+  amount: string;
+  currency: string;
+  client_reference?: string | null;
+  checkout_status: "open" | "complete" | "expired";
+  payment_status: "processing" | "cancelled" | "succeeded";
+  transaction_id?: string | null;
+  wave_launch_url: string;
+  when_expires?: string;
+}
+
+export interface WaveWebhookEvent {
+  id: string;
+  type: string;
+  data: WaveCheckoutSession;
+}
+
+/** Temporary compatibility contracts while the legacy webhook is retired. */
 export interface BictorysCheckoutLink {
   type: "CheckoutLinkObject";
   link: string;
@@ -68,7 +87,6 @@ export interface BictorysError {
   details?: string;
 }
 
-/** Payload POSTé par Bictorys sur notre webhook. */
 export interface BictorysWebhookPayload {
   id: string;
   amount: number;

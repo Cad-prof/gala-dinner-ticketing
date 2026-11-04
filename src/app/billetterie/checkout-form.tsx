@@ -100,7 +100,7 @@ export function CheckoutForm({
         setLoading(false);
         return;
       }
-      // Redirection vers le checkout sécurisé Bictorys.
+      // Redirection vers le checkout sécurisé Wave.
       window.location.assign(data.paymentUrl);
     } catch {
       setServerError("Connexion impossible. Vérifiez votre réseau puis réessayez.");
@@ -325,18 +325,13 @@ export function CheckoutForm({
 
             <div className="mt-6 text-center">
               <p className="text-[11px] uppercase tracking-[0.25em] text-ivory-500">
-                Paiement sécurisé par Bictorys
+                Paiement sécurisé par Wave
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                {["Wave", "Orange Money", "Free Money", "Carte bancaire"].map((m) => (
-                  <Badge key={m} tone="neutral" className="tracking-[0.12em]">
-                    {m}
-                  </Badge>
-                ))}
+                <Badge tone="neutral" className="tracking-[0.12em]">Wave Mobile Money</Badge>
               </div>
               <p className="mt-4 text-xs leading-relaxed text-ivory-500">
-                Vous serez redirigé vers la page de paiement sécurisée pour choisir
-                votre moyen de paiement.
+                Vous serez redirigé vers la page de paiement sécurisée Wave.
               </p>
             </div>
           </CardBody>

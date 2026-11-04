@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Journal brut (audit) — n'empêche jamais le traitement.
-    await logPaymentEvent(payload.paymentReference, payload.status, payload).catch((err) => {
+    await logPaymentEvent(payload.paymentReference, payload.status, payload, undefined, "bictorys").catch((err) => {
       console.error(
         "[bictorys/webhook] event logging:",
         err instanceof Error ? err.message : "Unknown error",

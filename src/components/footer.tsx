@@ -55,7 +55,7 @@ export function Footer() {
               <p className="text-[11px] uppercase tracking-[0.25em] text-gold-300">
                 Paiement sécurisé
               </p>
-              <p className="mt-1.5">Transactions traitées par Bictorys</p>
+              <p className="mt-1.5">Transactions traitées par Wave</p>
               <p className="text-ivory-400">Wave · Orange Money · Carte bancaire</p>
             </div>
           </div>
